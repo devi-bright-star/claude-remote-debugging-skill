@@ -93,8 +93,12 @@ func stopBridge(t *testing.T, bridge *exec.Cmd, sig syscall.Signal) (signaled bo
 // not by dying of the signal.
 func bridgeStopsItsTunnelFirst(t *testing.T, sig syscall.Signal) {
 	bridge, sshPid := startBridgeWithFakeSSH(t)
+	asked := time.Now()
 	if stopBridge(t, bridge, sig) {
 		t.Errorf("%v killed the bridge outright; it should shut itself down", sig)
+	}
+	if took := time.Since(asked); took > 2*time.Second {
+		t.Errorf("the bridge took %v to stop after %v; it should go as soon as its ssh has", took.Round(time.Millisecond), sig)
 	}
 	if alive(sshPid) {
 		t.Fatalf("after %v the bridge had exited but its ssh (pid %d) was still running: the server keeps the forwarded port", sig, sshPid)
